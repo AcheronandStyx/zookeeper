@@ -2,6 +2,8 @@ const express = require('express');
 const { appendFile } = require('fs');
 const { animals } = require('./data/animals');
 
+const PORT = process.env.PORT || 3001;
+
 // We assign express() to the app variable so that we can later chain on methods to the Express.js server.
 const app = express();
 
@@ -57,6 +59,6 @@ app.get('/api/animals', (req, res) => {
     res.json(results);
 });
 //queryu parameters in the url will become JSON on the return
-app.listen(3001, () => {
-    console.log(`API server now on port 3001!`);
+app.listen(PORT, () => {
+    console.log(`API server now on port ${PORT}!`);
 });
