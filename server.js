@@ -1,10 +1,16 @@
 const express = require('express');
-
+const fs = require('fs');
+const path = require('path');
 const { animals } = require('./data/animals');
 
 const PORT = process.env.PORT || 3001;
 // We assign express() to the app variable so that we can later chain on methods to the Express.js server.
 const app = express();
+
+// parse incoming string or array data
+app.use(express.urlencoded({ extended: true }));
+// parse incoming JSON data
+app.use(express.json());
 
 // This function will take in req.query as an argument and filter through the animals accordingly, returning the new filtered array
 function filterByQuery(query, animalsArray) {
@@ -48,7 +54,35 @@ function filterByQuery(query, animalsArray) {
 function findById(id, animalsArray) {
     const result = animalsArray.filter(animal => animal.id === id)[0];
     return result;
-  }
+}
+
+
+function createNewAnimal(body, animalsArray) {
+    const animal = body;
+    animalsArray.push(animal);
+    fs.writeFileSync(
+        path.join(__dirname, './data/animals.json'),
+        JSON.stringify({ animals: animalsArray }, null, 2)
+    );
+
+    return animal;
+};
+
+function validateAnimal(animal) {
+    if (!animal.name || typeof animal.name !== 'string') {
+        return false;
+    }
+    if (!animal.species || typeof animal.species !== 'string') {
+        return false;
+    }
+    if (!animal.diet || typeof animal.diet !== 'string') {
+        return false;
+    }
+    if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
+        return false;
+    }
+    return true;
+}
 /*
 get() method requires two arguments. The first is a string that describes the route the client will have to fetch from. 
 The second is a callback function that will execute every time that route is accessed with a GET request.
@@ -66,11 +100,26 @@ app.get('/api/animals', (req, res) => { // get the entire file
 app.get('/api/animals/:id', (req, res) => {
     const result = findById(req.params.id, animals);
     if (result) {
-      res.json(result);
+        res.json(result);
     } else {
-      res.send(404);
+        res.send(404);
     }
-  });
+});
+
+app.post('/api/animals', (req, res) => {
+    // set id based on what the next index of the array will be
+    // length is one number ahead of the array index, so perfect for setting the unique ID
+    req.body.id = animals.length.toString();
+
+    // if any data in req.body is incorrect, send 400 error back
+    if (!validateAnimal(req.body)) {
+        res.status(400).send('The animal is not properly formatted.');
+    } else {
+        const animal = createNewAnimal(req.body, animals);
+        res.json(animal);
+    }
+});
+
 //queryu parameters in the url will become JSON on the return
 app.listen(PORT, () => {
     console.log(`API server now on port ${PORT}!`);
